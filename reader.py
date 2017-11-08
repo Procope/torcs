@@ -54,3 +54,29 @@ def split_data(x, y1, y2, y3, train, valid):
     test_set = (x_test, y1_test, y2_test, y3_test)
 
     return train_set, valid_set, test_set
+
+
+def generate_batches(x, y, batch_size=128):
+    assert(x.shape[0] == y.shape[0])
+
+    n_batches = x.shape[0] // batch_size
+
+    # Discarding the last batch for now, for simplicity.
+    x_ = np.zeros(
+        shape=(
+            n_batches,
+            batch_size,
+            x.shape[1]),
+        dtype=np.float32)
+    y_ = np.zeros(
+        shape=(
+            n_batches,
+            batch_size),
+        dtype=np.int32)
+
+    for batch in range(n_batches):
+        for idx in range(batch_size):
+            x_[batch, idx] = x[(batch * batch_size) + idx]
+            y_[batch, idx] = y[(batch * batch_size) + idx]
+
+    return (x_, y_)
