@@ -38,21 +38,16 @@ def split_data(x, y1, y2, y3, train, valid):
     train_size = int(N * train)
     valid_size = int(N * valid)
 
-    x_train = x[:train_size]
-    x_valid = x[train_size:train_size+valid_size]
-    x_test = x[train_size+valid_size:]
+    def split(data, train_size, valid_size):
+        data_train = data[:train_size]
+        data_valid = data[train_size:train_size+valid_size]
+        data_test = data[train_size+valid_size:]
+        return data_train, data_valid, data_test
 
-    y1_train = y1[:train_size]
-    y1_valid = y1[train_size:train_size+valid_size]
-    y1_test = y1[train_size+valid_size:]
-
-    y2_train = y2[:train_size]
-    y2_valid = y2[train_size:train_size+valid_size]
-    y2_test = y2[train_size+valid_size:]
-
-    y3_train = y3[:train_size]
-    y3_valid = y3[train_size:train_size+valid_size]
-    y3_test = y3[train_size+valid_size:]
+    x_train, x_valid, x_test = split(x, train_size, valid_size)
+    y1_train, y1_valid, y1_test = split(y1, train_size, valid_size)
+    y2_train, y2_valid, y2_test = split(y2, train_size, valid_size)
+    y3_train, y3_valid, y3_test = split(y3, train_size, valid_size)
 
     train_set = (x_train, y1_train, y2_train, y3_train)
     valid_set = (x_valid, y1_valid, y2_valid, y3_valid)
@@ -62,4 +57,3 @@ def split_data(x, y1, y2, y3, train, valid):
 
 x, y1, y2, y3 = read_data('train_data/alpine-1.csv', shuffle=True)
 train_set, valid_set, test_set = split_data(x, y1, y2, y3, 0.8, 0.1)
-
