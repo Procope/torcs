@@ -64,3 +64,24 @@ history = model_brake.fit(x_train, y2_train,
 score = model_brake.evaluate(x_test, y2_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
+
+
+model_steer = Sequential()
+model_steer.add(Dense(512, activation='relu', input_shape=(x_train.shape[1],)))
+model_steer.add(Dropout(0.1))
+model_steer.add(Dense(1, activation='linear'))
+
+model_steer.summary()
+
+model_steer.compile(loss='mean_squared_error',
+              optimizer=SGD())
+
+history = model_steer.fit(x_train, y3_train,
+                    batch_size=batch_size,
+                    epochs=epochs,
+                    verbose=1,
+                    validation_data=(x_test, y3_test))
+
+score = model_steer.evaluate(x_test, y3_test, verbose=0)
+print('Test loss:', score[0])
+
