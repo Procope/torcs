@@ -54,6 +54,3 @@ def split_data(x, y1, y2, y3, train, valid):
     test_set = (x_test, y1_test, y2_test, y3_test)
 
     return train_set, valid_set, test_set
-
-x, y1, y2, y3 = read_data('train_data/alpine-1.csv', shuffle=True)
-train_set, valid_set, test_set = split_data(x, y1, y2, y3, 0.8, 0.1)
