@@ -14,7 +14,7 @@ def read_data(filepath, shuffle=True, pca_dims=7):
     Args:
         filepath: a csv file
         shuffle: whether to randomly shuffle the training data
-        pca_dim: number of dimensions for dimensionality reduction; 0 means no PCA
+        pca_dims: number of dimensions for dimensionality reduction; 0 means no PCA
     """
     with open(filepath) as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
@@ -42,6 +42,9 @@ def read_data(filepath, shuffle=True, pca_dims=7):
         y2 = np.array(y2, dtype='float32')
         y3 = np.array(y3, dtype='float32')
 
+        # for i in range(x.shape[1]):
+        #     print(i, np.mean(x[:,i]), np.std(x[:,i]))
+
         x = preprocessing.scale(x)
 
         if pca_dims > 0:
@@ -61,7 +64,7 @@ def read_data_in_sequences(filepath, sequence_length, shuffle=True, pca_dims=7):
         filepath: a csv file
         sequence_length: the number of timesteps of which a sequence consists
         shuffle: whether to randomly shuffle the training data
-        pca_dim: number of dimensions; 0 means no PCA
+        pca_dims: number of dimensions; 0 means no PCA
     """
     pca_dims_ = pca_dims
     x, y1, y2, y3 = read_data(filepath, shuffle=False, pca_dims=pca_dims_)
