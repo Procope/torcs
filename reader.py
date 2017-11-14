@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 from sklearn import preprocessing
 
 from inputs import In
-
+import pickle
 
 def read_data(filepath, shuffle=True, pca_dims=7):
     """
@@ -49,6 +49,8 @@ def read_data(filepath, shuffle=True, pca_dims=7):
 
         if pca_dims > 0:
             pca = PCA(n_components = pca_dims).fit(x)
+            with open('pca.pickle', 'wb') as f:
+                pickle.dump(pca.components_, f)
             x = pca.transform(x)
 
     if shuffle:

@@ -41,6 +41,7 @@ history = model_accel.fit(x_train, y1_train,
                     verbose=1,
                     validation_data=(x_valid, y1_valid))
 
+model_accel.save('model_accel.h5')
 score = model_accel.evaluate(x_test, y1_test, verbose=0)
 print("ACCELERATION\n")
 print('Test loss:', score[0])
@@ -64,6 +65,7 @@ history = model_brake.fit(x_train, y2_train,
                     verbose=1,
                     validation_data=(x_valid, y2_valid))
 
+model_brake.save('model_brake.h5')
 score = model_brake.evaluate(x_test, y2_test, verbose=0)
 print("\n\nBREAK\n")
 print('Test loss:', score[0])
@@ -90,6 +92,8 @@ history = model_steer.fit(x_train, y3_train,
                     epochs=epochs,
                     verbose=1,
                     validation_data=(x_valid, y3_valid))
+
+model_steer.save('model_steer.h5')
 
 score = model_steer.evaluate(x_test, y3_test, verbose=0)
 preds = model_steer.predict(x_test, batch_size=batch_size)
