@@ -69,8 +69,8 @@ print("\n\nBREAK\n")
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-def mean_distance(y_true, y_pred):
-    return K.sqrt(K.mean(K.pow(y_true-y_pred, 2)))
+# def mean_distance(y_true, y_pred):
+#     return K.sqrt(K.mean(K.pow(y_true-y_pred, 2)))
 
 model_steer = Sequential()
 model_steer.add(Dense(128, activation='relu', input_shape=(x_train.shape[1],)))
@@ -82,8 +82,7 @@ model_steer.add(Dense(1, activation='tanh'))
 model_steer.summary()
 
 model_steer.compile(loss='mean_squared_error',
-              optimizer=SGD(lr=0.1),
-              metrics=[mean_distance])
+              optimizer=SGD(lr=0.1))
 
 history = model_steer.fit(x_train, y3_train,
                     batch_size=batch_size,
@@ -92,7 +91,7 @@ history = model_steer.fit(x_train, y3_train,
                     validation_data=(x_valid, y3_valid))
 
 score = model_steer.evaluate(x_test, y3_test, verbose=0)
-preds = model_steer.predict(x_test, batch_size=batch_size)
+# preds = model_steer.predict(x_test, batch_size=batch_size)
 
 # for i in range(5):
 #   print(y3_test[i], preds[i])
