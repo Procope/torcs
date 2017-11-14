@@ -5,11 +5,11 @@ from keras.optimizers import RMSprop, SGD
 
 from sklearn import preprocessing
 
-from reader import read_data, split_data, generate_batches
+from reader import read_data, read_data_in_sequences, split_data, generate_batches
 
 
 # the data, shuffled and split between train, validation, and test sets
-x, y1, y2, y3 = read_data('train_data/alpine-1.csv', shuffle=True)
+x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', 3, shuffle=True, pca_dims=10)
 x = preprocessing.scale(x)
 
 train_set, valid_set, test_set = split_data(x, y1, y2, y3, 0.8, 0.1)
@@ -18,7 +18,7 @@ x_train, y1_train, y2_train, y3_train = train_set
 x_valid, y1_valid, y2_valid, y3_valid = valid_set
 x_test, y1_test, y2_test, y3_test = test_set
 
-batch_size = 128
+batch_size = 64
 epochs = 50
 
 model_accel = Sequential()
@@ -35,7 +35,7 @@ model_accel.compile(loss='binary_crossentropy',
 history = model_accel.fit(x_train, y1_train,
                     batch_size=batch_size,
                     epochs=epochs,
-                    verbose=1,
+                    verbose=0,
                     validation_data=(x_valid, y1_valid))
 
 score = model_accel.evaluate(x_test, y1_test, verbose=0)

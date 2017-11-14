@@ -1,9 +1,21 @@
 import csv
 import numpy as np
+
 from sklearn.utils import shuffle as parallel_shuffle
+from sklearn.decomposition import PCA
+from sklearn import preprocessing
+
 from inputs import In
 
-def read_data(filepath, shuffle=True):
+
+def read_data(filepath, shuffle=True, pca_dims=7):
+    """
+    Read training data.
+    Args:
+        filepath: a csv file
+        shuffle: whether to randomly shuffle the training data
+        pca_dim: number of dimensions for dimensionality reduction; 0 means no PCA
+    """
     with open(filepath) as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
 
@@ -13,9 +25,12 @@ def read_data(filepath, shuffle=True):
         y3 = []
 
         # skip the headers
-        next(reader, None)
+        std_length = len(next(reader, None)) + 1
 
         for line in reader:
+            if len(line) != std_length:
+                continue
+
             y1.append(float(line[0]))
             y2.append(float(line[1]))
             y3.append(float(line[2]))
@@ -27,10 +42,61 @@ def read_data(filepath, shuffle=True):
         y2 = np.array(y2, dtype='float32')
         y3 = np.array(y3, dtype='float32')
 
+        x = preprocessing.scale(x)
+
+        if pca_dims > 0:
+            pca = PCA(n_components = pca_dims).fit(x)
+            x = pca.transform(x)
+
     if shuffle:
         return parallel_shuffle(x, y1, y2, y3)
     else:
         return x, y1, y2, y3
+
+
+def read_data_in_sequences(filepath, sequence_length, shuffle=True, pca_dims=7):
+    """
+    Read training data so to use sequences of state features as inputs.
+    Args:
+        filepath: a csv file
+        sequence_length: the number of timesteps of which a sequence consists
+        shuffle: whether to randomly shuffle the training data
+        pca_dim: number of dimensions; 0 means no PCA
+    """
+    pca_dims_ = pca_dims
+    x, y1, y2, y3 = read_data(filepath, shuffle=False, pca_dims=pca_dims_)
+
+    x_seq = []
+
+    n_features = x.shape[1]
+    for i, features in enumerate(x, start=1):
+        seq_features = np.zeros((sequence_length * n_features,))
+        if i < sequence_length:
+            rand_indices = list(map(int, x.shape[0] * np.random.random_sample((sequence_length-i,))))
+
+            seq_features[:(sequence_length-i)*n_features] = np.concatenate([x[j] for j in rand_indices])
+
+            # For the first inputs, this portion of the feature vector is empty
+            try:
+                seq_features[(sequence_length-i)*n_features:(sequence_length-1)*n_features] = x_seq[i-2][sequence_length:]
+            except IndexError:
+                pass
+            except ValueError:
+                pass
+
+            seq_features[(sequence_length-1)*n_features:] = x[i-1]
+        else:
+            past = np.array(x_seq[-1])[n_features:]
+            seq_features = np.concatenate([past, x[i-1]])
+
+        x_seq.append(seq_features)
+
+    x_seq = np.array(x_seq, dtype='float32')
+
+    if shuffle:
+        return parallel_shuffle(x_seq, y1, y2, y3)
+    else:
+        return x_seq, y1, y2, y3
 
 
 def split_data(x, y1, y2, y3, train, valid):
@@ -80,3 +146,7 @@ def generate_batches(x, y, batch_size=128):
             y_[batch, idx] = y[(batch * batch_size) + idx]
 
     return (x_, y_)
+
+
+x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', 3)
+
