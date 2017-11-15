@@ -24,55 +24,55 @@ x_test, y1_test, y2_test, y3_test = test_set
 batch_size = 128
 epochs = 70
 
-model_accel = Sequential()
-model_accel.add(Dense(512, activation='relu', input_shape=(x_train.shape[1],)))
-model_accel.add(Dropout(0.1))
-model_accel.add(Dense(1, activation='sigmoid'))
+# model_accel = Sequential()
+# model_accel.add(Dense(512, activation='relu', input_shape=(x_train.shape[1],)))
+# model_accel.add(Dropout(0.1))
+# model_accel.add(Dense(1, activation='sigmoid'))
+#
+# model_accel.summary()
+#
+# model_accel.compile(loss='binary_crossentropy',
+#               optimizer=RMSprop(lr=0.005, decay=1e-3),
+#               metrics=['accuracy'])
+#
+# history = model_accel.fit(x_train, y1_train,
+#                     batch_size=batch_size,
+#                     epochs=epochs,
+#                     verbose=1,
+#                     validation_data=(x_valid, y1_valid))
+#
+# model_accel.save('model_accel.h5')
+# score = model_accel.evaluate(x_test, y1_test, verbose=0)
+# print("ACCELERATION\n")
+# print('Test loss:', score[0])
+# print('Test accuracy:', score[1])
+#
+#
+# model_brake = Sequential()
+# model_brake.add(Dense(128, activation='relu', input_shape=(x_train.shape[1],)))
+# model_brake.add(Dropout(0.1))
+# model_brake.add(Dense(1, activation='sigmoid'))
+#
+# model_brake.summary()
+#
+# model_brake.compile(loss='binary_crossentropy',
+#               optimizer=RMSprop(lr=0.005, decay=1e-3),
+#               metrics=['accuracy'])
+#
+# history = model_brake.fit(x_train, y2_train,
+#                     batch_size=batch_size,
+#                     epochs=epochs,
+#                     verbose=1,
+#                     validation_data=(x_valid, y2_valid))
+#
+# model_brake.save('model_brake.h5')
+# score = model_brake.evaluate(x_test, y2_test, verbose=0)
+# print("\n\nBREAK\n")
+# print('Test loss:', score[0])
+# print('Test accuracy:', score[1])
 
-model_accel.summary()
-
-model_accel.compile(loss='binary_crossentropy',
-              optimizer=RMSprop(lr=0.005, decay=1e-3),
-              metrics=['accuracy'])
-
-history = model_accel.fit(x_train, y1_train,
-                    batch_size=batch_size,
-                    epochs=epochs,
-                    verbose=1,
-                    validation_data=(x_valid, y1_valid))
-
-model_accel.save('model_accel.h5')
-score = model_accel.evaluate(x_test, y1_test, verbose=0)
-print("ACCELERATION\n")
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
-
-
-model_brake = Sequential()
-model_brake.add(Dense(128, activation='relu', input_shape=(x_train.shape[1],)))
-model_brake.add(Dropout(0.1))
-model_brake.add(Dense(1, activation='sigmoid'))
-
-model_brake.summary()
-
-model_brake.compile(loss='binary_crossentropy',
-              optimizer=RMSprop(lr=0.005, decay=1e-3),
-              metrics=['accuracy'])
-
-history = model_brake.fit(x_train, y2_train,
-                    batch_size=batch_size,
-                    epochs=epochs,
-                    verbose=1,
-                    validation_data=(x_valid, y2_valid))
-
-model_brake.save('model_brake.h5')
-score = model_brake.evaluate(x_test, y2_test, verbose=0)
-print("\n\nBREAK\n")
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
-
-# def mean_distance(y_true, y_pred):
-#     return K.sqrt(K.mean(K.pow(y_true-y_pred, 2)))
+def mean_distance(y_true, y_pred):
+    return K.sqrt(K.mean(K.pow(y_true-y_pred, 2)))
 
 model_steer = Sequential()
 model_steer.add(Dense(128, activation='relu', input_shape=(x_train.shape[1],)))
@@ -84,7 +84,8 @@ model_steer.add(Dense(1, activation='tanh'))
 model_steer.summary()
 
 model_steer.compile(loss='mean_squared_error',
-              optimizer=SGD(lr=0.1))
+              optimizer=SGD(lr=0.1),
+              metrics=[mean_distance])
 
 history = model_steer.fit(x_train, y3_train,
                     batch_size=batch_size,
@@ -102,4 +103,3 @@ score = model_steer.evaluate(x_test, y3_test, verbose=0)
 
 print("\n\nSTEERING")
 print('Test loss:', score)
-
