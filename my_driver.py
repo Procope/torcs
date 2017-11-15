@@ -1,6 +1,7 @@
 from pytocl.driver import Driver
 from pytocl.car import State, Command
 from keras.models import load_model
+import keras.backend as K
 import numpy as np
 import time
 from pprint import pprint
@@ -22,11 +23,7 @@ class MyDriver(Driver):
 
 
     def drive(self, carstate: State) -> Command:
-        # if self.cnt % 10 == 0:
-        #     print(self.cnt)
-        #     pprint(vars(carstate))
-        # self.cnt += 1
-        # return super().drive(carstate)
+        return super().drive(carstate)
 
         time1 = time.time()
         command = self.compute_command(carstate)
