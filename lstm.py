@@ -15,6 +15,7 @@ import tensorflow as tf
 
 seq_len = 7
 n_dims = 7
+
 # the data, shuffled and split between train, validation, and test sets
 x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', seq_len, shuffle=True, pca_dims=n_dims)
 

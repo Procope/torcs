@@ -13,8 +13,11 @@ from sklearn import preprocessing
 from reader import read_data, read_data_in_sequences, split_data, generate_batches
 import tensorflow as tf
 
+seq_len = 3
+n_dims = 7
+
 # the data, shuffled and split between train, validation, and test sets
-x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', 3, shuffle=True, pca_dims=7)
+x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', seq_len, shuffle=True, pca_dims=n_dims)
 
 train_set, valid_set, test_set = split_data(x, y1, y2, y3, 0.8, 0.1)
 
@@ -50,8 +53,8 @@ def mean_distance(y_true, y_pred):
 model = Sequential()
 model.add(Dense(512, activation='relu', input_shape=(x_train.shape[1],)))
 model.add(Dropout(0.1))
-# model.add(Dense(512, activation='relu', input_shape=(x_train.shape[1],)))
-# model.add(Dropout(0.1))
+model.add(Dense(512, activation='relu', input_shape=(x_train.shape[1],)))
+model.add(Dropout(0.1))
 model.add(Dense(3, activation='linear'))
 model.summary()
 
