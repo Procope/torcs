@@ -3,32 +3,36 @@ from pytocl.car import State, Command
 from keras.models import load_model
 import keras.backend as K
 import numpy as np
+from scipy.special import expit
 import time
 from pprint import pprint
 import pickle
-from lstm import mixed_loss
-
+from lstm import mixed_loss, accuracy_test, mean_distance
 
 class MyDriver(Driver):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)        
-        # with open('scaling.pickle', 'rb') as f:
-        #     scaling = pickle.load(f)
-        #     self.means = [mean_std[0] for mean_std in self.scaling]
-        #     self.scales = [mean_std[1] for mean_std in self.scaling]
+        with open('scaling.pickle', 'rb') as f:
+            scaling = pickle.load(f)
+            self.means = [mean_std[0] for mean_std in scaling]
+            self.scales = [mean_std[1] for mean_std in scaling]
 
         with open('pca.pickle', 'rb') as f:
             self.pca = pickle.load(f)
 
-        self.model = load_model('lstm.h5')
-        # print(self.model.layers)
-        self.sequences = self.model.layers
-        self.sequential = np.zeros((1,self.sequence_length))
+        custom_objects = {'mixed_loss': mixed_loss,
+                          'accuracy_test': accuracy_test,
+                          'mean_distance': mean_distance
+                          }
+        self.model = load_model('lstm.h5', custom_objects=custom_objects)
+
+        self.input_shape = tuple(self.model.layers[0].input_shape[1:])
+        self.input = np.zeros(self.input_shape)
         self.cnt = 0
 
 
     def drive(self, carstate: State) -> Command:
-        return super().drive(carstate)
+        # return super().drive(carstate)
 
         time1 = time.time()
         command = self.compute_command(carstate)
@@ -43,12 +47,9 @@ class MyDriver(Driver):
         return command
 
     def compute_command(self, carstate: State):
-        input = self.to_input(carstate)
-        accel = self.model_accel.predict([self.sequential])[0][0]
-        brake = self.model_brake.predict([self.sequential])[0][0]
-        steer = self.model_steer.predict([self.sequential])[0][0]
-
-        return self.to_command(accel, brake, steer)
+        self.to_input(carstate)
+        accel, brake, steer = self.model.predict(self.input.reshape((1,7,7)))[0]
+        return self.to_command(expit(accel), expit(brake), steer)
 
     def shift(self, carstate: State, command: Command):
         if carstate.rpm > 8000:
@@ -67,8 +68,7 @@ class MyDriver(Driver):
 
         input = np.divide(np.subtract(input, self.means), self.scales)
         input = np.matmul(self.pca, input)
-
-        self.sequential = np.concatenate((self.sequential, np.array([input])), axis=1)[0][-30:].reshape((1,30))
+        self.input = np.append(self.input[1:], input.reshape(1,7), axis=0)
 
     def to_command(self, accelerate, brake, steer):
         command = Command()

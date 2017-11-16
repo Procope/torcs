@@ -42,9 +42,13 @@ def read_data(filepath, shuffle=True, pca_dims=7):
         y2 = np.array(y2, dtype='float32')
         y3 = np.array(y3, dtype='float32')
 
-        # for i in range(x.shape[1]):
-        #     print(i, np.mean(x[:,i]), np.std(x[:,i]))
+        scaling = []
+        for i in range(x.shape[1]):
+            scaling.append((np.mean(x[:,i]), np.std(x[:,i])))
 
+        with open('scaling.pickle', 'wb') as f:
+            pickle.dump(scaling, f)
+    
         x = preprocessing.scale(x)
 
         if pca_dims > 0:
