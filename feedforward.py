@@ -11,9 +11,11 @@ from sklearn import preprocessing
 
 from reader import read_data, read_data_in_sequences, split_data, generate_batches
 
+seq_len = 3
+n_dims = 7
 
 # the data, shuffled and split between train, validation, and test sets
-x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', 3, shuffle=True, pca_dims=7)
+x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', seq_len, shuffle=True, pca_dims=n_dims)
 
 train_set, valid_set, test_set = split_data(x, y1, y2, y3, 0.8, 0.1)
 
@@ -71,8 +73,8 @@ print("\n\nBREAK\n")
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
-# def mean_distance(y_true, y_pred):
-#     return K.sqrt(K.mean(K.pow(y_true-y_pred, 2)))
+def mean_distance(y_true, y_pred):
+    return K.sqrt(K.mean(K.pow(y_true-y_pred, 2)))
 
 model_steer = Sequential()
 model_steer.add(Dense(128, activation='relu', input_shape=(x_train.shape[1],)))
@@ -84,7 +86,8 @@ model_steer.add(Dense(1, activation='tanh'))
 model_steer.summary()
 
 model_steer.compile(loss='mean_squared_error',
-              optimizer=SGD(lr=0.1))
+              optimizer=SGD(lr=0.1),
+              metrics=[mean_distance])
 
 history = model_steer.fit(x_train, y3_train,
                     batch_size=batch_size,
@@ -102,4 +105,3 @@ score = model_steer.evaluate(x_test, y3_test, verbose=0)
 
 print("\n\nSTEERING")
 print('Test loss:', score)
-
