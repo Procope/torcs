@@ -6,20 +6,25 @@ import numpy as np
 import time
 from pprint import pprint
 import pickle
+from lstm import mixed_loss
+
 
 class MyDriver(Driver):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.model_accel = load_model('model_accel.h5')
-        self.model_brake = load_model('model_brake.h5')
-        self.model_steer = load_model('model_steer.h5')
-        self.cnt = 0
-        self.scaling = [(133.864,54.9646),(-0.00863886,0.50894),(0.00188822,0.105689),(6.5347,3.37256),(6.63965,3.43778),(6.95333,3.60714),(7.53029,3.91342),(8.49204,4.5185),(10.0121,5.27447),(12.6311,6.85156),(18.0477,10.4204),(39.4379,29.5398),(82.1273,51.8961),(41.5571,25.8683),(19.7458,14.6121),(13.9527,10.8658),(10.9412,8.62758),(9.22592,7.23537),(8.20196,6.45132),(7.57763,5.96612),(7.23648,5.69632),(7.12393,5.60116)]
-        self.means = [mean_std[0] for mean_std in self.scaling]
-        self.scales = [mean_std[1] for mean_std in self.scaling]
+        super().__init__(*args, **kwargs)        
+        # with open('scaling.pickle', 'rb') as f:
+        #     scaling = pickle.load(f)
+        #     self.means = [mean_std[0] for mean_std in self.scaling]
+        #     self.scales = [mean_std[1] for mean_std in self.scaling]
+
         with open('pca.pickle', 'rb') as f:
-            self.pca =pickle.load(f)
-        self.sequential = np.zeros((1,30))
+            self.pca = pickle.load(f)
+
+        self.model = load_model('lstm.h5')
+        # print(self.model.layers)
+        self.sequences = self.model.layers
+        self.sequential = np.zeros((1,self.sequence_length))
+        self.cnt = 0
 
 
     def drive(self, carstate: State) -> Command:
