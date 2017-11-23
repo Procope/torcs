@@ -30,11 +30,11 @@ def mean_distance(y_true, y_pred):
 
 
 if __name__ == '__main__':
-    seq_len = 7
+    seq_len = 20
     n_dims = 7
 
     # the data, shuffled and split between train, validation, and test sets
-    x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', seq_len, shuffle=True, pca_dims=n_dims)
+    x, y1, y2, y3 = read_data_in_sequences('train_data/alpine-1.csv', seq_len, shuffle=True, pca_dims=n_dims)
 
     train_set, valid_set, test_set = split_data(x, y1, y2, y3, 0.8, 0.1)
 
