@@ -37,21 +37,20 @@
       <attnum name="distance to start" val="25"/>
       <attnum name="distance between columns" val="20"/>
       <attnum name="offset within a column" val="10"/>
-      <attnum name="initial speed" val="0"/>
+      <attnum name="initial speed" val="10"/>
       <attnum name="initial height" val="0.2"/>
     </section>
 
   </section>
 
   <section name="Drivers">
-    <attnum name="maximum number" val="1"/>
+    <attnum name="maximum number" val="40"/>
     <attnum name="focused idx" val="0"/>
     <attstr name="focused module" val="scr_server"/>
     <section name="1">
       <attnum name="idx" val="0"/>
       <attstr name="module" val="scr_server"/>
     </section>
-
   </section>
 
   <section name="Configuration">

@@ -582,7 +582,7 @@ class Controller(object):
             start_time = time.time()
             if not simulate:
                 try:
-                    server_process.wait(timeout=10)
+                    server_process.wait(timeout=40)
                 except Exception as ex:
                     server_process.kill()
             end_time = time.time()

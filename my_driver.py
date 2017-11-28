@@ -11,33 +11,36 @@ import logging
 _logger = logging.getLogger(__name__)
 
 class MyDriver(Driver):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)        
-        with open('../torcs/network_winner.pickle', 'rb') as net_in:
-            self.model = pickle.load(net_in)
+    def __init__(self, network_file='network_best.pickle', network=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if network:
+            self.network =  network
+        else:   
+            with open(network_file, 'rb') as net_in:
+                self.network = pickle.load(net_in)
         self.max_angle = 30
         self.prev_command = Command()
         self.T_out = 0
         self.distance = 0
         self.ticks = 0
-        self.time = time.time()
-        self.total_time = 0
+        self.default = False
 
     def drive(self, carstate: State) -> Command:
-        # return super().drive(carstate)
-        time1 = time.time()
-        
         if abs(carstate.distance_from_center) >= 1: 
             self.T_out += 1
-
         self.distance = carstate.distance_raced
         self.ticks += 1
 
+        if not self.default and (abs(carstate.angle) >= self.max_angle or abs(carstate.distance_from_center) >= 1):
+            self.default = True
+        elif self.default and abs(carstate.angle) < self.max_angle-15 and abs(carstate.distance_from_center) < 1:
+            self.default = False
+
         command = Command()
-        if abs(carstate.angle) >= self.max_angle or abs(carstate.distance_from_center) >= 1:
+        if self.default:
             self.steer(carstate, 0.0, command)
             command.accelerator = 0.2
-        elif carstate.distances_from_edge[9] > 100:
+        elif max(carstate.distances_from_edge[7:12:2]) > 100:
             command.accelerator = 1
         else:
             command = self.compute_command(carstate)
@@ -47,16 +50,10 @@ class MyDriver(Driver):
         if self.data_logger:
             self.data_logger.log(carstate, command)        
 
-        time2 = time.time()
-        # print(time2-self.time)
-        self.total_time += time2 - self.time
-        self.time = time2
-        print(self.distance)
-        # print(self.total_time)
         return command
 
     def compute_command(self, carstate: State):
-        accel, steer = self.model.activate(self.to_input(carstate))
+        accel, steer = self.network.activate(self.to_input(carstate))
         return self.to_command(accel, steer)
 
     def shift(self, carstate: State, command: Command):
@@ -78,7 +75,7 @@ class MyDriver(Driver):
         input.append(carstate.distances_from_edge[-1])
         input.append(carstate.distances_from_edge[-3])
         input.append(carstate.distances_from_edge[-5])
-        input.append(sum(carstate.distances_from_edge[7:12:2]))
+        input.append(max(carstate.distances_from_edge[7:12:2]))
 
         return input
 
@@ -93,8 +90,3 @@ class MyDriver(Driver):
         command.steering = (self.prev_command.steering + steer)/2
 
         return command
-
-    def on_shutdown(self):
-        super().on_shutdown()
-        with open('eval.pickle', 'wb') as eval_out:
-            pickle.dump((self.T_out, self.distance, self.ticks), eval_out)
