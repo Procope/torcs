@@ -1,8 +1,11 @@
 import os
 import neat
 import pickle
+import psutil
+import importlib
 import subprocess
 from pytocl.protocol import Client
+import my_driver
 from my_driver import MyDriver
 
 def run(config_file, checkpoint):
@@ -36,11 +39,15 @@ def run(config_file, checkpoint):
 
 
 def eval_genomes(genomes, config):
+    importlib.reload(my_driver)
+    from my_driver import MyDriver
+
     best_time = float('inf')
     best_genome = max(genomes, key=lambda genome: genome[1].fitness if genome[1].fitness else float('-inf'))[1]
+    finished = 0
 
     for idx, item in enumerate(genomes):
-        print('idx: ', idx)
+        print('idx:', idx)
 
         genome_id, genome = item
         net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -52,45 +59,34 @@ def eval_genomes(genomes, config):
         client = Client(driver=driver)
         
         print('driving...')
-        T_out, distance, ticks = client.run()
+        client.run()
 
-        time = get_time(server_proc)
-        if time < best_time:
-            best_time = time
+        try:
+            server_proc.wait(timeout=20)
+        except subprocess.TimeoutExpired as ex:
+            process = psutil.Process(server_proc.pid)
+            for proc in process.children(recursive=True):
+                proc.kill()
+            process.kill()
         
-        speed_avg = distance/ticks
-        eta = 1000
-        beta = 1000
-        genome.fitness = eta - T_out + speed_avg*beta + distance
-        
-        print('fitness:   ', genome.fitness)
-        print('T_out:     ', T_out)
-        print('distance:  ', distance)
-        print('ticks:     ', ticks)
-        print('speed:     ', speed_avg)
-        print('time:      ', time, '\n')
+        genome.fitness = driver.eval(2057.56) # track length for speedway
+        # genome.fitness = driver.eval(3274.20) # track length for ruudskogen
+        print('fitness:   ', genome.fitness, '\n')
+
+
+        if driver.prev_state.last_lap_time:
+            finished += 1
+            if driver.prev_state.last_lap_time < best_time:
+                best_time = driver.prev_state.last_lap_time
 
         if genome.fitness > best_genome.fitness:
-            net = neat.nn.FeedForwardNetwork.create(genomes.best_genome, config)
+            best_genome = genome
+            net = neat.nn.FeedForwardNetwork.create(best_genome, config)
             with open('network_best.pickle', 'wb') as net_out:
                 pickle.dump(net, net_out)
 
     print('Best time: ', best_time)
-
-def get_time(process):
-    try:
-        sim, _, time, *_ = process.communicate()[0].splitlines()[-1].split() #Sim Time: 60.47 [s], Leader Laps: 1, Leader Distance: 2.058 [km]
-        if sim.decode('UTF-8') == 'Sim':  
-            time = float(time)
-            print(time)
-            return time
-    except IndexError as ex:
-        pass
-    except ValueError as ex:
-        pass
-    
-    return float('inf')
-
+    print('Finished races: ', finished)
 
 if __name__ == '__main__':
     # Parse command line arguments

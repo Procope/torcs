@@ -69,7 +69,6 @@ class Client:
 
         _logger.info('Client stopped.')
         self.state = State.STOPPED
-        return self.driver.T_out, self.driver.distance, self.driver.ticks
 
     def stop(self):
         """Exits cyclic client execution (asynchronously)."""
