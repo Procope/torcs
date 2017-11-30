@@ -1,5 +1,7 @@
 import os
 import neat
+import gzip
+import random
 import pickle
 import psutil
 import importlib
@@ -17,7 +19,16 @@ def run(config_file, checkpoint):
 
     # load or create the population, which is the top-level object for a NEAT run.
     if checkpoint:
-        population = neat.Checkpointer.restore_checkpoint('checkpoints/neat-checkpoint-' + str(checkpoint))
+        if checkpoint == -1:
+            file = max(os.listdir('checkpoints/'), key=lambda f: int(f.split('-')[-1]))
+        else:
+            file = 'neat-checkpoint-' + str(checkpoint)
+
+        with gzip.open('checkpoints/' + file) as f:
+            generation, config_prev, population, species_set, rndstate = pickle.load(f)
+            random.setstate(rndstate)
+            population = neat.Population(config, (population, species_set, generation))
+        # population = neat.Checkpointer.restore_checkpoint('checkpoints/neat-checkpoint-' + str(checkpoint))
     else:
         population = neat.Population(config)
 
@@ -28,7 +39,7 @@ def run(config_file, checkpoint):
     population.add_reporter(neat.Checkpointer(1, None, 'checkpoints/neat-checkpoint-'))
 
     # Run for up to 30 generations.
-    winner = population.run(eval_genomes, 30)
+    winner = population.run(eval_genomes, 50)
     net = neat.nn.FeedForwardNetwork.create(winner, config)
     with open('network_winner.pickle', 'wb') as net_out:
         pickle.dump(net, net_out)
@@ -69,7 +80,8 @@ def eval_genomes(genomes, config):
                 proc.kill()
             process.kill()
         
-        genome.fitness = driver.eval(2057.56) # track length for speedway
+        # genome.fitness = driver.eval(2057.56) # track length for speedway
+        genome.fitness = driver.eval(6355.65) # track length for alpine 1
         # genome.fitness = driver.eval(3274.20) # track length for ruudskogen
         print('fitness:   ', genome.fitness, '\n')
 
