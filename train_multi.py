@@ -65,28 +65,19 @@ def eval_genomes(genomes, config):
 
     for batch_idx, batch in enumerate(chunks(genomes, 10)):
         print('batch idx:', idx)
+
         print('start server')        
         server_proc = subprocess.Popen(["torcs", "-r", torcs_config_file], stdout=subprocess.PIPE)
-
+        
+        clients = []        
         for idx, item in enumerate(batch):
-            genome_id, genome = item
-            net = neat.nn.FeedForwardNetwork.create(genome, config)
+            clients.append(run_client(idx, *item))
 
-            driver = MyDriver(network=net, logdata=False)
-            client = Client(driver=driver, port=3001+idx)
-            
-            print('driving...')
-            client.run()
-
-            genome.fitness = driver.eval(2587.54) # track length for aalborg
-            print('fitness:   ', genome.fitness, '\n')
-
-
-            if driver.prev_state.last_lap_time:
-                finished += 1
-                if driver.prev_state.last_lap_time < best_time:
-                    best_time = driver.prev_state.last_lap_time
-
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*clients))
+        loop.close()
+        
+        for 
         try:
             server_proc.wait(timeout=20)
         except subprocess.TimeoutExpired as ex:
@@ -95,13 +86,25 @@ def eval_genomes(genomes, config):
                 proc.kill()
             process.kill()
         
-        # genome.fitness = driver.eval(2057.56) # track length for speedway
-        # genome.fitness = driver.eval(6355.65) # track length for alpine 1
-
     print('Best time: ', best_time)
     print('Finished races: ', finished)
 
-async def 
+async def run_client(client_id, genome_id, genome):
+    net = neat.nn.FeedForwardNetwork.create(genome, config)
+
+    driver = MyDriver(network=net, logdata=False)
+    client = Client(driver=driver, port=3001+client_id)
+    
+    print(client_id, 'driving ...')
+    client.run()
+
+    genome.fitness = driver.eval(2587.54) # track length for aalborg
+
+    if driver.prev_state.last_lap_time:
+        finished += 1
+        if driver.prev_state.last_lap_time < best_time:
+            best_time = driver.prev_state.last_lap_time
+
 # Create a function called "chunks" with two arguments, l and n:
 def chunks(l, n):
     # For item i in a range that is a length of l,
