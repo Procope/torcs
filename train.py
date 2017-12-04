@@ -10,6 +10,12 @@ from pytocl.protocol import Client
 import my_driver
 from my_driver import MyDriver
 
+class BestGenomeReporter(neat.reporting.BaseReporter):
+    def post_evaluate(self, config, population, species, best_genome):
+        net = neat.nn.FeedForwardNetwork.create(best_genome, config)
+        with open('network_best.pickle', 'wb') as net_out:
+            pickle.dump(net, net_out)
+
 def run(config_file, checkpoint):
     """load the config, create a population, evolve and show the result"""
     # Load configuration.
@@ -34,8 +40,8 @@ def run(config_file, checkpoint):
 
     # Add a stdout reporter to show progress in the terminal.
     population.add_reporter(neat.StdOutReporter(True))
-    stats = neat.StatisticsReporter()
-    population.add_reporter(stats)
+    population.add_reporter(neat.StatisticsReporter())
+    population.add_reporter(BestGenomeReporter())
     population.add_reporter(neat.Checkpointer(1, None, 'checkpoints/neat-checkpoint-'))
 
     # Run for up to 30 generations.
@@ -45,7 +51,7 @@ def run(config_file, checkpoint):
         pickle.dump(net, net_out)
 
     # Display the winning genome.
-    print('\nBest genome:\n{!s}'.format(winner))
+    print('\nWinning genome:\n{!s}'.format(winner))
 
 
 
@@ -54,7 +60,6 @@ def eval_genomes(genomes, config):
     from my_driver import MyDriver
 
     best_time = float('inf')
-    best_genome = max(genomes, key=lambda genome: genome[1].fitness if genome[1].fitness else float('-inf'))[1]
     finished = 0
 
     for idx, item in enumerate(genomes):
@@ -80,8 +85,8 @@ def eval_genomes(genomes, config):
                 proc.kill()
             process.kill()
         
-        # genome.fitness = driver.eval(2057.56) # track length for speedway
-        genome.fitness = driver.eval(6355.65) # track length for alpine 1
+        genome.fitness = driver.eval(2057.56) # track length for speedway
+        # genome.fitness = driver.eval(6355.65) # track length for alpine 1
         # genome.fitness = driver.eval(3274.20) # track length for ruudskogen
         print('fitness:   ', genome.fitness, '\n')
 
@@ -90,12 +95,6 @@ def eval_genomes(genomes, config):
             finished += 1
             if driver.prev_state.last_lap_time < best_time:
                 best_time = driver.prev_state.last_lap_time
-
-        if genome.fitness > best_genome.fitness:
-            best_genome = genome
-            net = neat.nn.FeedForwardNetwork.create(best_genome, config)
-            with open('network_best.pickle', 'wb') as net_out:
-                pickle.dump(net, net_out)
 
     print('Best time: ', best_time)
     print('Finished races: ', finished)

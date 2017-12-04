@@ -2,7 +2,7 @@ import logging
 import math
 from collections import Iterable
 from functools import partialmethod
-
+from numpy.linalg import norm
 _logger = logging.getLogger(__name__)
 
 DEGREE_PER_RADIANS = 180 / math.pi
@@ -99,6 +99,14 @@ class State(Value):
             sensor_dict,
             'focus'
         )
+
+    @property
+    def speed(self):
+        return norm([self.speed_x, self.speed_y, self.speed_z])
+
+    @property
+    def front_edge_sensors(self):
+        return self.distances_from_edge[6:13]
 
     @property
     def distances_from_egde_valid(self):

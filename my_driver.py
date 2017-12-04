@@ -18,32 +18,45 @@ class MyDriver(Driver):
         else:   
             with open(network_file, 'rb') as net_in:
                 self.network = pickle.load(net_in)
-        self.max_angle = 30
+        self.max_angle = 35
         self.prev_command = Command()
         self.prev_state = None
         self.T_out = 0
         self.ticks = 0
         self.default = False
+        self.start_distance = 0
 
     def drive(self, carstate: State) -> Command:
+        if self.ticks == 0:
+            self.start_distance = carstate.distance_from_start
+
         if abs(carstate.distance_from_center) >= 1: 
             self.T_out += 1
         self.ticks += 1
 
         if not self.default and (abs(carstate.angle) >= self.max_angle or abs(carstate.distance_from_center) >= 1):
             self.default = True
+            # print('default on')
         elif self.default and abs(carstate.angle) < self.max_angle-15 and abs(carstate.distance_from_center) < 1:
             self.default = False
+            # print('default off')
 
         command = Command()
         if self.default:
-            self.steer(carstate, 0.0, command)
-            command.accelerator = 0.2
-        elif max(carstate.distances_from_edge[7:12:2]) > 200:
-            command.accelerator = 1
+            try:
+                self.steer(carstate, 0.0, command)
+                command.accelerator = 0.4
+            except Exception as ex:
+                self.default = False
+                # print('default off')
+                command = self.compute_command(carstate)    
         else:
             command = self.compute_command(carstate)
 
+        ratio = 2.1
+        if carstate.speed > 20 and max(carstate.front_edge_sensors) > 20 and max(carstate.front_edge_sensors)/carstate.speed < ratio:
+            command.brake = (1/(ratio-1))*(carstate.speed / max(carstate.front_edge_sensors))
+        
         self.shift(carstate, command)
 
         if self.data_logger:
@@ -68,7 +81,7 @@ class MyDriver(Driver):
             command.gear = carstate.gear or 1
     
     def to_input(self, carstate: State):
-        speed = np.linalg.norm([carstate.speed_x, carstate.speed_y, carstate.speed_z])
+        speed = carstate.speed
         input = [speed]
         input.append(carstate.distances_from_edge[0])
         input.append(carstate.distances_from_edge[2])
@@ -77,6 +90,13 @@ class MyDriver(Driver):
         input.append(carstate.distances_from_edge[-3])
         input.append(carstate.distances_from_edge[-5])
         input.append(max(carstate.distances_from_edge[7:12:2]))
+
+        input.append(carstate.opponents[8])
+        input.append(carstate.opponents[15])
+        input.append(carstate.opponents[18])
+        input.append(carstate.opponents[20])
+        input.append(carstate.opponents[29])
+        input.append(carstate.opponents[-1])
 
         return input
 
@@ -94,23 +114,33 @@ class MyDriver(Driver):
 
     def eval(self, track_length):
         # check for NaN
-        if self.prev_state.distance_from_start == self.prev_state.distance_from_start and self.prev_state.current_lap_time:
+        if self.prev_state.distance_from_start == self.prev_state.distance_from_start:
             if self.prev_state.last_lap_time > 0:
-                distance = track_length
+                distance = track_length 
             else: 
-                distance = self.prev_state.distance_from_start
+                distance = min(self.prev_state.distance_from_start, self.prev_state.distance_raced)
         else:
             distance = 0
 
         speed_avg = distance/self.ticks
         
         print('T_out:     ', self.T_out)
+        print('damage:    ', self.prev_state.damage)
         print('distance:  ', distance)
         print('ticks:     ', self.ticks)
         print('speed:     ', speed_avg)
-        print('time:      ', self.prev_state.last_lap_time)
+        print('prev time: ', self.prev_state.last_lap_time)
+        print('cur time:  ', self.prev_state.current_lap_time)
+        print('position:  ', self.prev_state.race_position)
+        print('start_distance: ', self.start_distance)
         
+        fitness = distance - self.prev_state.damage - self.T_out*0.02
         if self.prev_state.last_lap_time:
-            return distance - self.prev_state.last_lap_time
+            fitness -= self.prev_state.last_lap_time
         else:
-            return distance - self.prev_state.current_lap_time
+            fitness -= self.prev_state.current_lap_time
+        return fitness # - 10*(self.prev_state.race_position - 1)
+
+    def on_shutdown(self):
+        super().on_shutdown()
+        # self.eval(0)

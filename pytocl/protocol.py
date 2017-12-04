@@ -147,7 +147,7 @@ class Client:
         except socket.error as ex:
             _logger.warning('Communication with server failed: {}.'.format(ex))
             self.timeout_counter += 1
-            if self.timeout_counter > 1:
+            if self.timeout_counter > 10:
                 self.stop()
         except KeyboardInterrupt:
             _logger.info('User requested shutdown.')
