@@ -30,7 +30,7 @@ def mean_distance(y_true, y_pred):
 
 
 if __name__ == '__main__':
-    seq_len = 7
+    seq_len = 10
     n_dims = 7
 
     # the data, shuffled and split between train, validation, and test sets
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     model.summary()
 
     model.compile(loss=mixed_loss,
-                  optimizer=RMSprop(lr=0.01, decay=1e-3),
+                  optimizer=RMSprop(lr=0.03, decay=1e-3),
                   metrics=[accuracy_test, mean_distance])
 
     history = model.fit(x_train, y_train,
