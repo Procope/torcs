@@ -36,6 +36,7 @@ class Client:
         self.serializer = serializer or Serializer()
         self.state = State.STOPPED
         self.socket = None
+        self.timeout_counter = 0
 
         _logger.debug('Initializing {}.'.format(self))
 
@@ -145,7 +146,9 @@ class Client:
 
         except socket.error as ex:
             _logger.warning('Communication with server failed: {}.'.format(ex))
-
+            self.timeout_counter += 1
+            if self.timeout_counter > 10:
+                self.stop()
         except KeyboardInterrupt:
             _logger.info('User requested shutdown.')
             self.stop()
