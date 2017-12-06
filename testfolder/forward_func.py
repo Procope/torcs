@@ -3,18 +3,6 @@ import numpy as np
 # import neat
 # from neat.nn import FeedForwardNetwork
 
-
-#################################################
-with open('single_driver/network_winner.pickle', 'rb') as net_in:
-    net = pickle.load(net_in)
-
-# How to save a network
-node_evals = [(node, bias, response, links) for (node, act_func, agg_func, bias, response, links) in net.node_evals]
-with open('node_evals.pickle', 'wb') as f:
-    pickle.dump(node_evals, f)
-#################################################
-
-
 def forward(net_data, inputs):
     output_nodes = [0, 1]
     values = {}
@@ -37,3 +25,15 @@ def forward(net_data, inputs):
         values[node] = np.tanh(bias + response * np.sum(node_inputs))
 
     return [values[i] for i in output_nodes]
+
+
+if __name__ == '__main__':
+    #################################################
+    with open('single_driver/network_winner.pickle', 'rb') as net_in:
+        net = pickle.load(net_in)
+
+    # How to save a network
+    node_evals = [(node, bias, response, links) for (node, act_func, agg_func, bias, response, links) in net.node_evals]
+    with open('node_evals.pickle', 'wb') as f:
+        pickle.dump(node_evals, f)
+    #################################################

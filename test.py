@@ -1,18 +1,9 @@
-import asyncio
-from random import randint
-from time import sleep
+from timeit import default_timer as timer
+import pickle
 
-async def test(n):
-	s = randint(1,10)
-	print('start', n, s)
-	await sleep(s)
-	print('end', n)
-
-tasks = []
-for n in range(3):
-	tasks.append(asyncio.ensure_future(test(n)))
-
-print('add to loop')
-loop = asyncio.get_event_loop()
-loop.run_until_complete(asyncio.gather(*tasks))
-loop.close()
+start = timer()
+with open('test', 'wb') as f:
+	pickle.dump(5, f)
+with open('test', 'rb') as f:
+	a = pickle.load(f)
+print(timer()-start, a)

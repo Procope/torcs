@@ -6,12 +6,12 @@ import time
 import math
 from pprint import pprint
 import pickle
-import neat
+from forward_func import forward
 import logging
 _logger = logging.getLogger(__name__)
 
 class MyDriver(Driver):
-    def __init__(self, network_file='network_best.pickle', network=None, *args, **kwargs):
+    def __init__(self, network_file='node_evals.pickle', network=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if network:
             self.network =  network
@@ -54,7 +54,7 @@ class MyDriver(Driver):
             command = self.compute_command(carstate)
 
         ratio = 2.1
-        if carstate.speed > 20 and max(carstate.front_edge_sensors) > 20 and max(carstate.front_edge_sensors)/carstate.speed < ratio:
+        if carstate.speed > 20 and max(carstate.front_edge_sensors) > 40 and max(carstate.front_edge_sensors)/carstate.speed < ratio:
             command.brake = (1/(ratio-1))*(carstate.speed / max(carstate.front_edge_sensors))
         
         self.shift(carstate, command)
@@ -67,11 +67,11 @@ class MyDriver(Driver):
         return command
 
     def compute_command(self, carstate: State):
-        accel, steer = self.network.activate(self.to_input(carstate))
+        accel, steer = forward(self.network, self.to_input(carstate))
         return self.to_command(accel, steer)
 
     def shift(self, carstate: State, command: Command):
-        if carstate.rpm > 8000:
+        if carstate.rpm > 9000:
             command.gear = carstate.gear + 1
 
         if carstate.rpm < 2500 and carstate.gear > 1:

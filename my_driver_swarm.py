@@ -1,5 +1,5 @@
 from pytocl.driver import Driver
-from pytocl.car import State, Command, MPS_PER_KMH
+from pytocl.car import State, Command
 import numpy as np
 from scipy.special import expit
 import time
@@ -25,19 +25,54 @@ class MyDriver(Driver):
         self.ticks = 0
         self.default = False
         self.start_distance = 0
+        self.racer = True
+        self.prev_dist = 200
 
     def drive(self, carstate: State) -> Command:
         if self.ticks == 0:
             self.start_distance = carstate.distance_from_start
 
+            with open('pos_' + str(carstate.race_position), 'wb') as posf:
+                pickle.dump(carstate.race_position, posf)
+                self.pos_file = 'pos_' + str(carstate.race_position)
+        
+        if self.default: print(self.default)
+        if self.ticks == 100:
+            for p in range(40):
+                if p == carstate.race_position:
+                    continue
+                try:
+                    with open('pos_' + str(p), 'rb') as other_pos:
+                        self.other_file = 'pos_' + str(p)
+                        self.other_pos = pickle.load(other_pos)
+                        print(self.other_pos)
+                    break
+                except FileNotFoundError as ex:
+                    continue
+
+            self.racer = carstate.race_position < self.other_pos
+            print(self.racer)
+
+
+        if self.ticks > 100 and self.ticks % 50 == 0:
+            with open(self.pos_file, 'wb') as posf:
+                pickle.dump(carstate.race_position, posf)
+
+            with open(self.other_file, 'rb') as other_pos:
+                self.other_pos = pickle.load(other_pos)
+
+            self.racer = carstate.race_position < self.other_pos
+            print(self.racer, carstate.race_position, self.other_pos)
+
+
         if abs(carstate.distance_from_center) >= 1: 
             self.T_out += 1
         self.ticks += 1
 
-        if not self.default and (abs(carstate.angle) >= self.max_angle or abs(carstate.distance_from_center) >= 1):
+        if not self.default and (abs(carstate.angle) >= self.max_angle or abs(carstate.distance_from_center) >= .8):
             self.default = True
             # print('default on')
-        elif self.default and abs(carstate.angle) < self.max_angle-15 and abs(carstate.distance_from_center) < 1:
+        elif self.default and abs(carstate.angle) < self.max_angle-15 and abs(carstate.distance_from_center) < .8:
             self.default = False
             # print('default off')
 
@@ -54,10 +89,22 @@ class MyDriver(Driver):
             command = self.compute_command(carstate)
 
         ratio = 2.1
-        if carstate.speed > 20 and max(carstate.front_edge_sensors) > 40 and max(carstate.front_edge_sensors)/carstate.speed < ratio:
+        if carstate.speed > 20 and max(carstate.front_edge_sensors) > 20 and max(carstate.front_edge_sensors)/carstate.speed < ratio:
             command.brake = (1/(ratio-1))*(carstate.speed / max(carstate.front_edge_sensors))
         
         self.shift(carstate, command)
+
+        if not self.default and not self.racer and self.other_pos - carstate.race_position < 5:
+
+            if min(carstate.opponents[7:10]) < 10 and self.prev_dist > min(carstate.opponents[7:10]):
+                print(self.ticks, carstate.race_position, 'bump')
+                command.steering = -0.1
+                self.prev_dist = min(carstate.opponents[7:10])
+
+            elif min(carstate.opponents[-10:-7]) < 10 and self.prev_dist > min(carstate.opponents[-10:-7]):
+                command.steering = 0.1
+                self.prev_dist = min(carstate.opponents[-10:-7])
+                print(self.ticks, carstate.race_position, 'bump')
 
         if self.data_logger:
             self.data_logger.log(carstate, command)        
@@ -90,6 +137,13 @@ class MyDriver(Driver):
         input.append(carstate.distances_from_edge[-3])
         input.append(carstate.distances_from_edge[-5])
         input.append(max(carstate.distances_from_edge[7:12:2]))
+
+        input.append(carstate.opponents[8])
+        input.append(carstate.opponents[15])
+        input.append(carstate.opponents[18])
+        input.append(carstate.opponents[20])
+        input.append(carstate.opponents[29])
+        input.append(carstate.opponents[-1])
 
         return input
 
