@@ -114,7 +114,19 @@ class MyDriver(Driver):
 
     def eval(self, track_length):
         # check for NaN
-        if self.prev_state and self.prev_state.distance_from_start == self.prev_state.distance_from_start:
+        if not self.prev_state:
+            return (fitness, 
+                self.T_out, 
+                0, 
+                distance, 
+                self.ticks, 
+                speed_avg, 
+                0, 
+                0,
+                0,
+                self.start_distance,)
+
+        if self.prev_state.distance_from_start == self.prev_state.distance_from_start:
             if self.prev_state.last_lap_time > 0:
                 distance = track_length 
             else: 
