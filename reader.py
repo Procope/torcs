@@ -158,4 +158,3 @@ def generate_batches(x, y, batch_size=128):
 
 
 x, y1, y2, y3 = read_data_in_sequences('train_data/all-tracks.csv', 3)
-

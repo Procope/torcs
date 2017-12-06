@@ -63,7 +63,7 @@ if __name__ == '__main__':
     model.summary()
 
     model.compile(loss=mixed_loss,
-                  optimizer=RMSprop(lr=0.01, decay=1e-3),
+                  optimizer=RMSprop(lr=0.03, decay=1e-3),
                   metrics=[accuracy_test, mean_distance])
 
     history = model.fit(x_train, y_train,
