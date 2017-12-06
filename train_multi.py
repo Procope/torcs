@@ -4,26 +4,25 @@ import gzip
 import random
 import pickle
 import psutil
+import logging
 import importlib
 import subprocess
 from pytocl.protocol import Client
 import my_driver
 from my_driver import MyDriver
-import asyncio
+from threading import Thread, Semaphore
+from time import sleep
+
+_logger = logging.getLogger(__name__)
 
 class BestGenomeReporter(neat.reporting.BaseReporter):
     def post_evaluate(self, config, population, species, best_genome):
         net = neat.nn.FeedForwardNetwork.create(best_genome, config)
-        with open('network_best.pickle', 'wb') as net_out:
+        with open('network_best_multi.pickle', 'wb') as net_out:
             pickle.dump(net, net_out)
 
-def run(config_file, checkpoint):
-    """load the config, create a population, evolve and show the result"""
-    # Load configuration.
-    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                         config_file)
-
+def run(checkpoint):
+    """create a population, evolve and show the result"""
     # load or create the population, which is the top-level object for a NEAT run.
     if checkpoint:
         if checkpoint == -1:
@@ -48,7 +47,7 @@ def run(config_file, checkpoint):
     # Run for up to 30 generations.
     winner = population.run(eval_genomes, 50)
     net = neat.nn.FeedForwardNetwork.create(winner, config)
-    with open('network_winner.pickle', 'wb') as net_out:
+    with open('network_winner_multi.pickle', 'wb') as net_out:
         pickle.dump(net, net_out)
 
     # Display the winning genome.
@@ -60,50 +59,65 @@ def eval_genomes(genomes, config):
     importlib.reload(my_driver)
     from my_driver import MyDriver
 
+    lock = Semaphore(value=1)
     best_time = float('inf')
     finished = 0
 
     for batch_idx, batch in enumerate(chunks(genomes, 10)):
-        print('batch idx:', idx)
+        print('batch idx:', batch_idx)
 
         print('start server')        
         server_proc = subprocess.Popen(["torcs", "-r", torcs_config_file], stdout=subprocess.PIPE)
-        
+
+        print('start clients')        
         clients = []        
         for idx, item in enumerate(batch):
-            clients.append(run_client(idx, *item))
+            genome_idx, genome = item
+            net = neat.nn.FeedForwardNetwork.create(genome, config)
+            client = Thread(target=run_client, args=(idx, genome, net, lock))
+            clients.append(client)
+            client.start()
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.gather(*clients))
-        loop.close()
-        
-        for 
         try:
-            server_proc.wait(timeout=20)
+            server_proc.wait(timeout=180)
         except subprocess.TimeoutExpired as ex:
             process = psutil.Process(server_proc.pid)
             for proc in process.children(recursive=True):
                 proc.kill()
             process.kill()
-        
+        print('\nserver stopped\n')
+
+        for client in clients:
+            client.join()
+        print('clients done\n')        
     print('Best time: ', best_time)
     print('Finished races: ', finished)
 
-async def run_client(client_id, genome_id, genome):
-    net = neat.nn.FeedForwardNetwork.create(genome, config)
-
-    driver = MyDriver(network=net, logdata=False)
+def run_client(client_id, genome, network, lock):
+    driver = MyDriver(network=network, logdata=False)
     client = Client(driver=driver, port=3001+client_id)
     
-    print(client_id, 'driving ...')
+    print(client_id, 'driving...')
     client.run()
 
-    genome.fitness = driver.eval(2587.54) # track length for aalborg
-
-    if driver.prev_state.last_lap_time:
-        finished += 1
-        if driver.prev_state.last_lap_time < best_time:
-            best_time = driver.prev_state.last_lap_time
+    evaluation = driver.eval(2587.54) # track length for aalborg
+    lock.acquire()
+    print('Genome:    ', client_id, '\n',
+          'fitness:   ', evaluation[0], '\n',
+          'T_out:     ', evaluation[1], '\n', 
+          'damage:    ', evaluation[2], '\n', 
+          'distance:  ', evaluation[3], '\n', 
+          'ticks:     ', evaluation[4], '\n',
+          'speed:     ', evaluation[5], '\n',
+          'prev time: ', evaluation[6], '\n',
+          'cur time:  ', evaluation[7], '\n',
+          'position:  ', evaluation[8], '\n',
+          'start:     ', evaluation[9],
+          sep='',
+          end='\n\n')
+    lock.release()
+    
+    genome.fitness = evaluation[0]
 
 # Create a function called "chunks" with two arguments, l and n:
 def chunks(l, n):
@@ -124,5 +138,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     torcs_config_file = os.path.abspath(args.torcs_config_file)
-
-    run(args.neat_file, args.checkpoint)
+        # Load configuration.
+    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         args.neat_file)
+    logging.basicConfig(level=logging.ERROR)
+    run(args.checkpoint)

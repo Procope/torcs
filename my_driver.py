@@ -114,7 +114,7 @@ class MyDriver(Driver):
 
     def eval(self, track_length):
         # check for NaN
-        if self.prev_state.distance_from_start == self.prev_state.distance_from_start:
+        if self.prev_state and self.prev_state.distance_from_start == self.prev_state.distance_from_start:
             if self.prev_state.last_lap_time > 0:
                 distance = track_length 
             else: 
@@ -122,24 +122,28 @@ class MyDriver(Driver):
         else:
             distance = 0
 
-        speed_avg = distance/self.ticks
+        if self.ticks:
+            speed_avg = distance/self.ticks
+        else:
+            speed_avg = 0        
+
         
-        print('T_out:     ', self.T_out)
-        print('damage:    ', self.prev_state.damage)
-        print('distance:  ', distance)
-        print('ticks:     ', self.ticks)
-        print('speed:     ', speed_avg)
-        print('prev time: ', self.prev_state.last_lap_time)
-        print('cur time:  ', self.prev_state.current_lap_time)
-        print('position:  ', self.prev_state.race_position)
-        print('start_distance: ', self.start_distance)
-        
-        fitness = distance - self.prev_state.damage - self.T_out*0.02
+        fitness = distance - self.T_out*0.02 #- 0.01*self.prev_state.damage #- 10*(self.prev_state.race_position - 1)
         if self.prev_state.last_lap_time:
             fitness -= self.prev_state.last_lap_time
         else:
             fitness -= self.prev_state.current_lap_time
-        return fitness # - 10*(self.prev_state.race_position - 1)
+
+        return (fitness, 
+                self.T_out, 
+                self.prev_state.damage, 
+                distance, 
+                self.ticks, 
+                speed_avg, 
+                self.prev_state.last_lap_time, 
+                self.prev_state.current_lap_time,
+                self.prev_state.race_position,
+                self.start_distance,)
 
     def on_shutdown(self):
         super().on_shutdown()
