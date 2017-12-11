@@ -8,8 +8,7 @@ import logging
 import importlib
 import subprocess
 from pytocl.protocol import Client
-import my_driver
-from my_driver_swarm import MyDriver
+from my_driver import MyDriver
 from threading import Thread
 from time import sleep
 
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class BestGenomeReporter(neat.reporting.BaseReporter):
     def post_evaluate(self, config, population, species, best_genome):
         net = neat.nn.FeedForwardNetwork.create(best_genome, config)
-        with open('swarm_driver/network_best_swarm.pickle', 'wb') as net_out:
+        with open('network_best_swarm.pickle', 'wb') as net_out:
             pickle.dump(net, net_out)
 
         print_evaluation(best_genome.evaluation)
@@ -31,11 +30,11 @@ def run(checkpoint):
     # load or create the population, which is the top-level object for a NEAT run.
     if checkpoint:
         if checkpoint == -1:
-            file = max(os.listdir('swarm_driver/checkpoints/'), key=lambda f: int(f.split('-')[-1]))
+            file = max(os.listdir('checkpoints/'), key=lambda f: int(f.split('-')[-1]))
         else:
             file = 'neat-checkpoint-' + str(checkpoint)
 
-        with gzip.open('swarm_driver/checkpoints/' + file) as f:
+        with gzip.open('checkpoints/' + file) as f:
             generation, config_prev, population, species_set, rndstate = pickle.load(f)
             random.setstate(rndstate)
             population = neat.Population(config, (population, species_set, generation))
@@ -47,12 +46,12 @@ def run(checkpoint):
     population.add_reporter(neat.StdOutReporter(True))
     population.add_reporter(neat.StatisticsReporter())
     population.add_reporter(BestGenomeReporter())
-    population.add_reporter(neat.Checkpointer(1, None, 'swarm_driver/checkpoints/neat-checkpoint-'))
+    population.add_reporter(neat.Checkpointer(1, None, 'checkpoints/neat-checkpoint-'))
 
     # Run for up to 30 generations.
-    winner = population.run(eval_genomes, 50)
+    winner = population.run(eval_genomes, 100)
     net = neat.nn.FeedForwardNetwork.create(winner, config)
-    with open('swarm_driver/network_winner_swarm.pickle', 'wb') as net_out:
+    with open('network_winner.pickle', 'wb') as net_out:
         pickle.dump(net, net_out)
 
     # Display the winning genome.
@@ -61,9 +60,6 @@ def run(checkpoint):
 
 
 def eval_genomes(genomes, config):
-    importlib.reload(my_driver)
-    from my_driver import MyDriver
-
     for idx, item in enumerate(genomes):
         print('Genome: ', idx)
 
@@ -71,7 +67,6 @@ def eval_genomes(genomes, config):
         server_proc = subprocess.Popen(["torcs", "-r", torcs_config_file], stdout=subprocess.PIPE)
 
         print('start clients')
-        [os.remove(file) for file in os.listdir() if file.startswith('pos_')]        
         genome_idx, genome = item
         net = neat.nn.FeedForwardNetwork.create(genome, config)
 
@@ -115,7 +110,8 @@ def run_client(client_id, genome, network, evaluation):
     print(client_id, 'driving...')
     client.run()
 
-    evaluation.extend(driver.eval(2587.54)) # track length for aalborg
+    # evaluation.extend(driver.eval(2587.54)) # track length for aalborg
+    evaluation.extend(driver.eval(3260.43)) # track length for eroad
     
     
 def print_evaluation(evaluation):
