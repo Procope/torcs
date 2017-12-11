@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class BestGenomeReporter(neat.reporting.BaseReporter):
     def post_evaluate(self, config, population, species, best_genome):
         net = neat.nn.FeedForwardNetwork.create(best_genome, config)
-        with open('network_best_swarm.pickle', 'wb') as net_out:
+        with open('swarm_driver/network_best_swarm.pickle', 'wb') as net_out:
             pickle.dump(net, net_out)
 
         print_evaluation(best_genome.evaluation)
@@ -31,11 +31,11 @@ def run(checkpoint):
     # load or create the population, which is the top-level object for a NEAT run.
     if checkpoint:
         if checkpoint == -1:
-            file = max(os.listdir('checkpoints_swarm/'), key=lambda f: int(f.split('-')[-1]))
+            file = max(os.listdir('swarm_driver/checkpoints/'), key=lambda f: int(f.split('-')[-1]))
         else:
             file = 'neat-checkpoint-' + str(checkpoint)
 
-        with gzip.open('checkpoints_swarm/' + file) as f:
+        with gzip.open('swarm_driver/checkpoints/' + file) as f:
             generation, config_prev, population, species_set, rndstate = pickle.load(f)
             random.setstate(rndstate)
             population = neat.Population(config, (population, species_set, generation))
@@ -47,12 +47,12 @@ def run(checkpoint):
     population.add_reporter(neat.StdOutReporter(True))
     population.add_reporter(neat.StatisticsReporter())
     population.add_reporter(BestGenomeReporter())
-    population.add_reporter(neat.Checkpointer(1, None, 'checkpoints_swarm/neat-checkpoint-'))
+    population.add_reporter(neat.Checkpointer(1, None, 'swarm_driver/checkpoints/neat-checkpoint-'))
 
     # Run for up to 30 generations.
     winner = population.run(eval_genomes, 50)
     net = neat.nn.FeedForwardNetwork.create(winner, config)
-    with open('network_winner_swarm.pickle', 'wb') as net_out:
+    with open('swarm_driver/network_winner_swarm.pickle', 'wb') as net_out:
         pickle.dump(net, net_out)
 
     # Display the winning genome.
@@ -131,6 +131,7 @@ def print_evaluation(evaluation):
           'start:     ', evaluation[9],
           sep='',
           end='\n\n')
+
 # Create a function called "chunks" with two arguments, l and n:
 def chunks(l, n):
     # For item i in a range that is a length of l,

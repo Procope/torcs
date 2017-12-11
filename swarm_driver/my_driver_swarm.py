@@ -209,8 +209,6 @@ class MyDriver(Driver):
                 self.start_distance,)
 
     def on_shutdown(self):
-        print('try delete')
         if hasattr(self, 'pos_file'):
-            print('delete')
             os.remove(self.pos_file)
         super().on_shutdown()

@@ -13,7 +13,7 @@ from my_driver import MyDriver
 class BestGenomeReporter(neat.reporting.BaseReporter):
     def post_evaluate(self, config, population, species, best_genome):
         net = neat.nn.FeedForwardNetwork.create(best_genome, config)
-        with open('network_best.pickle', 'wb') as net_out:
+        with open('single_driver/network_best.pickle', 'wb') as net_out:
             pickle.dump(net, net_out)
 
 def run(config_file, checkpoint):
@@ -47,7 +47,7 @@ def run(config_file, checkpoint):
     # Run for up to 30 generations.
     winner = population.run(eval_genomes, 50)
     net = neat.nn.FeedForwardNetwork.create(winner, config)
-    with open('network_winner.pickle', 'wb') as net_out:
+    with open('single_driver/network_winner.pickle', 'wb') as net_out:
         pickle.dump(net, net_out)
 
     # Display the winning genome.
