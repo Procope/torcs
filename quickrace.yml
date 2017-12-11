@@ -1,7 +1,0 @@
-players:
-    student:
-      working_dir: /media/kyll/MasterAI/CI/project/torcs-client
-controller:
-  torcs_config_file: quickrace.xml
-rater:
-  filename: ./ratings.csv

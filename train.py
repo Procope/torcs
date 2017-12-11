@@ -26,11 +26,11 @@ def run(config_file, checkpoint):
     # load or create the population, which is the top-level object for a NEAT run.
     if checkpoint:
         if checkpoint == -1:
-            file = max(os.listdir('checkpoints/'), key=lambda f: int(f.split('-')[-1]))
+            file = max(os.listdir('single_driver/checkpoints/'), key=lambda f: int(f.split('-')[-1]))
         else:
             file = 'neat-checkpoint-' + str(checkpoint)
 
-        with gzip.open('checkpoints/' + file) as f:
+        with gzip.open('single_driver/checkpoints/' + file) as f:
             generation, config_prev, population, species_set, rndstate = pickle.load(f)
             random.setstate(rndstate)
             population = neat.Population(config, (population, species_set, generation))
@@ -42,7 +42,7 @@ def run(config_file, checkpoint):
     population.add_reporter(neat.StdOutReporter(True))
     population.add_reporter(neat.StatisticsReporter())
     population.add_reporter(BestGenomeReporter())
-    population.add_reporter(neat.Checkpointer(1, None, 'checkpoints/neat-checkpoint-'))
+    population.add_reporter(neat.Checkpointer(1, None, 'single_driver/checkpoints/neat-checkpoint-'))
 
     # Run for up to 30 generations.
     winner = population.run(eval_genomes, 50)

@@ -1,20 +1,19 @@
 from pytocl.driver import Driver
 from pytocl.car import State, Command
 import numpy as np
-from scipy.special import expit
-import time
 import math
-from pprint import pprint
 import pickle
 from forward_func import forward
+import os
 import logging
-_logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
 
 class MyDriver(Driver):
     def __init__(self, network_file='node_evals.pickle', network=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if network:
-            self.network =  network
+            self.network = [(node, bias, response, links) for (node, act_func, agg_func, bias, response, links) in network.node_evals] 
         else:   
             with open(network_file, 'rb') as net_in:
                 self.network = pickle.load(net_in)
@@ -23,10 +22,11 @@ class MyDriver(Driver):
         self.prev_state = None
         self.T_out = 0
         self.ticks = 0
-        self.default = False
+        self.default = True
         self.start_distance = 0
         self.racer = True
         self.prev_dist = 200
+        # [os.remove(file) for file in os.listdir() if file.startswith('pos_')]        
 
     def drive(self, carstate: State) -> Command:
         if self.ticks == 0:
@@ -36,7 +36,7 @@ class MyDriver(Driver):
                 pickle.dump(carstate.race_position, posf)
                 self.pos_file = 'pos_' + str(carstate.race_position)
         
-        if self.default: print(self.default)
+        # if self.default: print(self.default)
         if self.ticks == 100:
             for p in range(40):
                 if p == carstate.race_position:
@@ -45,24 +45,27 @@ class MyDriver(Driver):
                     with open('pos_' + str(p), 'rb') as other_pos:
                         self.other_file = 'pos_' + str(p)
                         self.other_pos = pickle.load(other_pos)
-                        print(self.other_pos)
+                        self.racer = carstate.race_position < self.other_pos
+                        # print(self.other_pos)
                     break
                 except FileNotFoundError as ex:
                     continue
 
-            self.racer = carstate.race_position < self.other_pos
-            print(self.racer)
+            # print(self.racer)
 
 
-        if self.ticks > 100 and self.ticks % 50 == 0:
+        if hasattr(self, 'other_file') and self.ticks > 100 and self.ticks % 50 == 0:
             with open(self.pos_file, 'wb') as posf:
                 pickle.dump(carstate.race_position, posf)
 
-            with open(self.other_file, 'rb') as other_pos:
-                self.other_pos = pickle.load(other_pos)
+            with open(self.other_file, 'rb') as otherf:
+                try:
+                    self.other_pos = pickle.load(otherf)
+                    self.racer = carstate.race_position < self.other_pos
+                except EOFError as err:
+                    print(err)
 
-            self.racer = carstate.race_position < self.other_pos
-            print(self.racer, carstate.race_position, self.other_pos)
+            # print(self.racer, carstate.race_position, self.other_pos)
 
 
         if abs(carstate.distance_from_center) >= 1: 
@@ -97,14 +100,14 @@ class MyDriver(Driver):
         if not self.default and not self.racer and self.other_pos - carstate.race_position < 5:
 
             if min(carstate.opponents[7:10]) < 10 and self.prev_dist > min(carstate.opponents[7:10]):
-                print(self.ticks, carstate.race_position, 'bump')
+                # print(self.ticks, carstate.race_position, 'bump')
                 command.steering = -0.1
                 self.prev_dist = min(carstate.opponents[7:10])
 
             elif min(carstate.opponents[-10:-7]) < 10 and self.prev_dist > min(carstate.opponents[-10:-7]):
                 command.steering = 0.1
                 self.prev_dist = min(carstate.opponents[-10:-7])
-                print(self.ticks, carstate.race_position, 'bump')
+                # print(self.ticks, carstate.race_position, 'bump')
 
         if self.data_logger:
             self.data_logger.log(carstate, command)        
@@ -160,14 +163,13 @@ class MyDriver(Driver):
         return command
 
     def eval(self, track_length):
-        # check for NaN
         if not self.prev_state:
-            return (fitness, 
+            return (-self.T_out*0.02 - 90, 
                 self.T_out, 
                 0, 
-                distance, 
+                0,
                 self.ticks, 
-                speed_avg, 
+                0,
                 0, 
                 0,
                 0,
@@ -176,8 +178,10 @@ class MyDriver(Driver):
         if self.prev_state.distance_from_start == self.prev_state.distance_from_start:
             if self.prev_state.last_lap_time > 0:
                 distance = track_length 
-            else: 
-                distance = min(self.prev_state.distance_from_start, self.prev_state.distance_raced)
+            elif self.prev_state.distance_raced <= (track_length - self.start_distance): 
+                distance = self.prev_state.distance_raced
+            else:
+                distance = self.prev_state.distance_from_start
         else:
             distance = 0
 
@@ -187,7 +191,7 @@ class MyDriver(Driver):
             speed_avg = 0        
 
         
-        fitness = distance - self.T_out*0.02 #- 0.01*self.prev_state.damage #- 10*(self.prev_state.race_position - 1)
+        fitness = distance - self.T_out*0.02- 10*(self.prev_state.race_position - 1) #- 0.01*self.prev_state.damage 
         if self.prev_state.last_lap_time:
             fitness -= self.prev_state.last_lap_time
         else:
@@ -205,5 +209,8 @@ class MyDriver(Driver):
                 self.start_distance,)
 
     def on_shutdown(self):
+        print('try delete')
+        if hasattr(self, 'pos_file'):
+            print('delete')
+            os.remove(self.pos_file)
         super().on_shutdown()
-        # self.eval(0)
