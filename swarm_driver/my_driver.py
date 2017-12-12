@@ -22,7 +22,7 @@ class MyDriver(Driver):
         self.prev_state = None
         self.T_out = 0
         self.ticks = 0
-        self.default = True
+        self.default = False
         self.start_distance = 0
         self.racer = True
         self.prev_dist = 200
@@ -211,4 +211,5 @@ class MyDriver(Driver):
     def on_shutdown(self):
         if hasattr(self, 'pos_file'):
             os.remove(self.pos_file)
+        print(self.eval(0))
         super().on_shutdown()
